@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testcase uid="randomly-generated-hash1">
+    <name>Test 1</name>
+    <description>
+This test will start by setting sig 1 to 0 and sig 2 to true.
+Next it will ramp up and down sig 1.
+As a result, it will verify that sig 3 is true when sig 1 is equal to 2
+    </description>
+    <setup>
+        <condition name="signal name 1">0</condition>
+        <condition name="signal name 2">1</condition>
+    </setup>
+    <action>
+        <timeseries name="signal name 1">
+            <data time=0     value=0/>
+            <data time=0.1   value=1/>
+            <data time=0.5   value=2/>
+            <data time=2     value=1/>
+            <data time=10    value=0/>
+        </timeseries>
+    </action>
+    <results>
+        <timeseries name="signal name 1" max-latency=0 max-spread=0>
+            <data time=0     value=0/>
+            <data time=0.1   value=1/>
+            <data time=0.5   value=2/>
+            <data time=2     value=1/>
+            <data time=10    value=0/>
+        </timeseries>
+        <timeseries name="signal name 3" max-latency=0.1 max-spread=0>
+            <data time=0     value=0/>
+            <data time=0.5   value=1/>
+            <data time=2     value=0/>
+            <data time=10    value=0/>
+        </timeseries>
+    </results>
+</testcase>
