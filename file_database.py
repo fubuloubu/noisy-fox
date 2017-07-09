@@ -109,6 +109,7 @@ if __name__ == '__main__':
     from os import mkdir, rmdir
     from os.path import isfile as file_exists
     
+    # FileDBObject() testing
     print("Checking object creation/destruction and file write...")
     test_dir = 'file_testdb'
     mkdir(test_dir)
@@ -143,10 +144,17 @@ if __name__ == '__main__':
         assert(file_exists(new_fname))
         with open(new_fname, 'r') as f:
             assert(files_to_check[fname] == f.read())
-        obj.delete()
-        obj.write() # Should do nothing
-        del obj
-        assert(not file_exists(new_fname))
+        obj_list.append(obj)
     
     # Remove testing directory (must be empty)
     rmdir(test_dir)
+    
+    # FileDB() testing
+    print("Checking...")
+    test_dir = 'filedb_testdb'
+    for obj in obj_list:
+        fname = obj.filepath
+        obj.delete()
+        obj.write() # Should do nothing
+        del obj
+        assert(not file_exists(fname))
