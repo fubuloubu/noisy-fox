@@ -106,18 +106,47 @@ class FileDB(object):
 
 if __name__ == '__main__':
     # Run tests
+    from os import mkdir, rmdir
+    from os.path import isfile as file_exists
+    
+    print("Checking object creation/destruction and file write...")
     test_dir = 'file_testdb'
-    from os import mkdir
-    from shutil import rmtree
-    try:
-        rmtree(test_dir, ignore_errors=True)
-    finally:
-        mkdir(test_dir)
+    mkdir(test_dir)
     N = 1000
+    files_to_check = {}
     for i in range(N):
         # Initialize N files in test db folder
         # Create and destroy immediately
-        print(FileDBObject('{0}/test-{1:03d}.txt'.format(test_dir, i), \
-                new_contents='This is test number {0}'.format(i)))
-
-
+        fname = '{0}/new-{1:03d}.txt'.format(test_dir, i)
+        contents = 'This is test number {0}'.format(i)
+        FileDBObject(fname, new_contents=contents)
+        files_to_check[fname] = contents
+    
+    print("Checking file contents...")
+    for fname in files_to_check.keys():
+        with open(fname, 'r') as f:
+            assert(files_to_check[fname] == f.read())
+    
+    print("Checking object instantiation from file and methods...")
+    obj_list = []
+    for fname in files_to_check.keys():
+        obj = FileDBObject(fname)
+        assert(files_to_check[fname] == obj.contents)
+        new_fname = fname.replace('new-', 'test-')
+        obj.move(new_fname)
+        assert(not file_exists(fname))
+        assert(not file_exists(new_fname))
+        text_to_add = '\nI added some text!'
+        obj.contents          += text_to_add
+        files_to_check[fname] += text_to_add
+        obj.write()
+        assert(file_exists(new_fname))
+        with open(new_fname, 'r') as f:
+            assert(files_to_check[fname] == f.read())
+        obj.delete()
+        obj.write() # Should do nothing
+        del obj
+        assert(not file_exists(new_fname))
+    
+    # Remove testing directory (must be empty)
+    rmdir(test_dir)
