@@ -3,15 +3,15 @@ import xmltodict
 class XMLDBObject(FileDBObject):
     # Override to update representation string
     # Also updates how write() method works
-    def __repr__(self):
-        return xmltodict.unparse(super().__repr__(), pretty=True)
+    def __str__(self):
+        return xmltodict.unparse(super().__str__(), pretty=True)
     
     # Override to update object parsing
     def read(self):
         return xmltodict.parse(super().read())
     
     # XML Methods
-    def get_value(self, element_path):
+    def get(self, element_path):
         if element_path:
             try:
                 xmltree = self.contents.copy()
@@ -21,40 +21,52 @@ class XMLDBObject(FileDBObject):
                 return xmltree[keypath[-1]]
             except KeyError as error:
                 raise Warning("Key not found {}".format(error))
-                return None
+        return None
 
-    def get_attribute(self, element_path, attribute_name):
-        return self.get_element(element_path)['@' + attribute_name]
-
-    def set_value(self, element_path, value):
+    def set(self, element_path, value):
         if element_path:
             keypath = element_path.split('/')
             for key in keypath[:-1]:
                 self.contents = self.contents.setdefault(key, {})
             self.contents[keypath[-1]] = value
 
-    def set_attribute(self, element_path, attribute_name, value):
-        self.get_element(element_path)['@' + attribute_name] = value
-
-from re import search as re_search
 class XMLDB(FileDB):
-    # Override to update the memory we can use and provide XML Object
     def __init__(self, db_root):
-        max_memory=54*1024*1024 #bytes
-        obj_class=XMLDBObject, max_memory=max_memory
-        super().__init__(db_root, obj_class=obj_class, max_memory=max_memory)
+        super().__init__(db_root)
+        # Override quantities in parent class
+        self.obj_class=XMLDBObject
+        self._max_memory=54*1024*1024
+        self.ext = '.xml'
+
+if __name__ == '__main__':
+    # Run tests
+    from os import mkdir, rmdir
+    from os.path import isfile as file_exists
     
-    # Override for extension
-    def get_objs(self, fileglob='**/*', ext='.xml'):
-        super().get_objs(fileglob=fileglob, ext=ext)
+    test_dir = 'xml_testdb'
+    mkdir(test_dir)
+    db = XMLDB(test_dir)
+    N = 100
+    print("Checking object creation")
+    files_to_check = {}
+    for i in range(N):
+        obj = {}
+        obj['root'] = {}
+        obj['root']['name'] = 'Test {:02d}'.format(i)
+        obj['root']['@attr'] = 'title'
+        db.add_obj('test-{:02d}'.format(i), obj)
+        files_to_check['/test-{:02d}'.format(i)] = xmltodict.unparse(obj)
+    for basename, contents in files_to_check.items():
+        filename = db.db_root + '/' + basename + db.ext
+        #assert(not file_exists(filename))
+        #[o.write() for o in db.get_objs(fileglob=basename)]
+        assert(file_exists(filename))
+        with open(filename, 'r') as f:
+            assert(f.read() == contents)
+    print("Checking queries...")
+    all_query = [lambda o: o.get('root/@attr']) == 'title']
+    all_objs = db.query(all_query, db.get_objs())
+    assert(len(all_objs) == N)
     
-    # Override for XML specific queries for a given list of element : value tests
-    # (where value is a regex search string)
-    def query(self, element_value_tests, objs, inclusive=True):
-        # Construct list of query functions for XML Object
-        queries = []
-        for search_name, match_value in element_value_tests.items():
-            queries.append(lambda o: re_search(match_value, \
-                    o.get_value(search_name)) is not None)
-        # Then pass to super class method
-        return super().query(queries, objs, inclusive=inclusive)
+    # Remove testing directory (must be empty)
+    rmdir(test_dir)
