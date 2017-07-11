@@ -1,4 +1,4 @@
-from basic_file_manager import FileContentManager
+from .basic_file_manager import FileContentManager
 
 from glob import iglob as find_file
 class FileDatabase(object):
@@ -120,4 +120,4 @@ if __name__ == '__main__':
     
     # Remove testing directory (must be empty)
     rmdir(test_dir)
-    print("FileDatabase() testing complete!")
+    print("FileDatabase() Testing Passed!")

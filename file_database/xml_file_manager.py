@@ -1,5 +1,5 @@
-from basic_file_manager import FileContentManager
-from traverse import traverse
+from .basic_file_manager import FileContentManager
+from .traverse import traverse
 
 import xmltodict
 
@@ -61,4 +61,4 @@ if __name__ == '__main__':
     
     # Remove testing directory (must be empty)
     obj.delete()
-    print("XMLContentManager() test cases pass!")
+    print("XMLContentManager() Testing Passed!")

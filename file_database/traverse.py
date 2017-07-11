@@ -71,4 +71,4 @@ if __name__ == '__main__':
     traverse(test_tree, 'root/new', value={'nested': {'inside' : {'another' : 'nested'}}})
     assert(traverse(test_tree, 'root/new/nested')['inside']['another'] == 'nested')
     
-    print("traverse() test cases pass!")
+    print("traverse() Testing Passed!")
