@@ -7,7 +7,7 @@ class XMLContentManager(FileContentManager):
     # Override to update representation string
     # Also updates how write() method works
     def __str__(self):
-        return xmltodict.unparse(super().__str__(), pretty=True)
+        return xmltodict.unparse(super().__str__(), pretty=True, indent='  ')
     
     # Override to update object parsing
     def _read(self):
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     del obj
     assert(file_exists(filename))
     with open(filename, 'r') as f:
-        contents = xmltodict.unparse(xml, pretty=True)
+        contents = xmltodict.unparse(xml, pretty=True, indent='  ')
         assert(f.read() == contents)
     
     # Ensure getter/setter methods work reasonably well
