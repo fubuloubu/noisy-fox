@@ -84,3 +84,4 @@ if __name__ == '__main__':
     test = TestCaseContentManager('test.xml')
     test._write()
     test.delete()
+    print("TestCaseContentManager() Testing Passed!")
