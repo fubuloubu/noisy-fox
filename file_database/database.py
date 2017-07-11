@@ -32,7 +32,7 @@ class FileDatabase(object):
     def add_obj(self, basename, obj_content):
         obj = self._obj_class(self._fullpath_from(basename), \
                 new_contents=obj_content)
-        obj._write() #TODO: Not necessary if object referncing works
+        obj._write() #TODO: FileContentManager().reference-counting
     
     # Get list of objects based on filename globbing
     def get_objs(self, fileglob='**/*'):
@@ -52,7 +52,7 @@ class FileDatabase(object):
         return map(func, objs if objs else self.get_objs())
 
 if __name__ == '__main__':
-    from os import mkdir, rmdir
+    from os import mkdir, rmdir, listdir
     from os.path import isfile as file_exists
     
     test_dir = 'file_testdb'
@@ -65,20 +65,20 @@ if __name__ == '__main__':
     files_to_check = {} # Use this as an external means to keep track of things
     for i in range(N):
         basename = 'new-{:03d}'.format(i)
-        contents = 'This is file number {:03d} created by FileDatabase()!'.format(i)
+        contents = 'This is file number {} created by FileDatabase()!\n'.format(i)
         files_to_check[db._fullpath_from(basename)] = contents
         db.add_obj(basename, contents)
     
     # Files don't get written until told
-    #for fname in find_file(test_dir + '/*'):
-    #    assert(not file_exists(fname))
+    assert(len(listdir(test_dir)) == 0)
+    db.apply(lambda o: o._write()) #TODO: FileContentManager().reference-counting
     #del db # this should write all the files out
     for fname in files_to_check.keys():
         with open(fname, 'r') as f:
             assert(files_to_check[fname] == f.read())
     
     db = FileDatabase(test_dir) # Restart instance of db
-    text_to_add = '\nI moved it!'
+    text_to_add = 'I moved it!\n'
     db.apply(lambda o: o.update_contents(o._contents + text_to_add)) # Append this to everything
     db.apply(lambda o: o.move(o._filepath.replace('new-', 'renamed-')))
     
@@ -89,9 +89,8 @@ if __name__ == '__main__':
                 files_to_check.pop(fname) + text_to_add
     
     # All files are not written until told
-    for fname in find_file(test_dir + '**/*'):
-        assert(not file_exists(fname))
-    db.apply(lambda o: o._write()) #TODO: Temp for testing, remove once resolved
+    assert(len(listdir(test_dir)) == 0)
+    db.apply(lambda o: o._write()) #TODO: FileContentManager().reference-counting
     #del db # this should write all the files out
     for fname in files_to_check.keys():
         with open(fname, 'r') as f:
@@ -120,8 +119,7 @@ if __name__ == '__main__':
     print("Checking object removal...")
     db.apply(lambda o: o.delete()) # Delete all files
     db.apply(lambda o: o._write()) # Write all files (but this shouldn't do anything)
-    for fname in files_to_check.keys():
-        assert(not file_exists(fname))
+    assert(len(listdir(test_dir)) == 0)
     
     # Remove testing directory (must be empty)
     rmdir(test_dir)
