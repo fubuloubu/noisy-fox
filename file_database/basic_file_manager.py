@@ -76,7 +76,7 @@ if __name__ == '__main__':
     assert(not file_exists(fname))
     
     # When references are zero, file is written
-    obj._write() #TODO: Cheating until referencing counting is implemented
+    obj._write() #TODO: FileContentManager().reference-counting
     del obj
     with open(fname, 'r') as f:
         assert(contents == f.read())
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     assert(not file_exists(fname))
 
     # If references are removed, file write does not write file if it was deleted
-    obj._write() #TODO: Cheating until referencing counting is implemented
+    obj._write() #TODO: FileContentManager().reference-counting
     del obj
     assert(not file_exists(fname))
 
