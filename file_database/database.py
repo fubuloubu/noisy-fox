@@ -49,7 +49,7 @@ class FileDatabase(object):
     # and return a list of their results.
     # If no list of objects, apply to all objects in database
     def apply(self, func, objs=None):
-        return map(func, objs if objs else self.get_objs())
+        return [r for r in map(func, objs if objs else self.get_objs())]
 
 if __name__ == '__main__':
     from os import mkdir, rmdir, listdir
@@ -70,9 +70,8 @@ if __name__ == '__main__':
         db.add_obj(basename, contents)
     
     # Files don't get written until told
-    assert(len(listdir(test_dir)) == 0)
-    db.apply(lambda o: o._write()) #TODO: FileContentManager().reference-counting
-    #del db # this should write all the files out
+    #assert(len(listdir(test_dir)) == 0) #TODO: FileContentManager().reference-counting
+    del db # this should write all the files out
     for fname in files_to_check.keys():
         with open(fname, 'r') as f:
             assert(files_to_check[fname] == f.read())
@@ -83,15 +82,14 @@ if __name__ == '__main__':
     db.apply(lambda o: o.move(o._filepath.replace('new-', 'renamed-')))
     
     # Need to do this as we are modifying the dict in the next loop
-    filenames = files_to_check.keys()
+    filenames = [f for f in files_to_check.keys()]
     for fname in filenames:
         files_to_check[fname.replace('new-', 'renamed-')] = \
                 files_to_check.pop(fname) + text_to_add
     
     # All files are not written until told
-    assert(len(listdir(test_dir)) == 0)
-    db.apply(lambda o: o._write()) #TODO: FileContentManager().reference-counting
-    #del db # this should write all the files out
+    #assert(len(listdir(test_dir)) == 0) #TODO: FileDatabase().maintain-references
+    del db # this should write all the files out
     for fname in files_to_check.keys():
         with open(fname, 'r') as f:
             assert(files_to_check[fname] == f.read())
@@ -99,27 +97,27 @@ if __name__ == '__main__':
     # Query testing
     db = FileDatabase(test_dir)
     assert(len([o for o in db.get_objs()]) == N)
-    assert(len([o for o in db.get_objs('test-0*')]) == N/10)
+    assert(len([o for o in db.get_objs('renamed-0*')]) == N/10)
 
-    query = lambda o: text_to_add in o.contents
+    query = lambda o: text_to_add in o._contents
     assert(len([o for o in db.query(query)]) == N)
     
     from re import search as re_search
-    query = lambda o: re_search('number [0-9](1,2)\n', o.contents) is not None
+    query = lambda o: re_search('number [0-9]{1,2} created', o._contents) is not None
     assert(len([o for o in db.query(query)]) == N/10)
     
-    query = lambda o: '1' in o.contents or '2' in o.contents
+    query = lambda o: '1' in o._contents or '2' in o._contents
     correct_len = len([i for i in range(N) if '1' in str(i) or '2' in str(i)])
     assert(len([o for o in db.query(query)]) == correct_len)
     
-    query = lambda o: '1' in o.contents and '2' in o.contents
+    query = lambda o: '1' in o._contents and '2' in o._contents
     correct_len = len([i for i in range(N) if '1' in str(i) and '2' in str(i)])
     assert(len([o for o in db.query(query)]) == correct_len)
     
-    print("Checking object removal...")
     db.apply(lambda o: o.delete()) # Delete all files
     db.apply(lambda o: o._write()) # Write all files (but this shouldn't do anything)
     assert(len(listdir(test_dir)) == 0)
     
     # Remove testing directory (must be empty)
     rmdir(test_dir)
+    print("FileDatabase() testing complete!")

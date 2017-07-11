@@ -32,12 +32,13 @@ class FileContentManager(object):
     def _write(self):
         if self._filepath:
             with open(self._filepath, 'w') as f:
-                # Use repr() to show how to
+                # Use str() to show how to
                 # write it out of the file
                 f.write(str(self))
     
     def update_contents(self, new_contents):
         self._contents = new_contents
+        self._write() #TODO: FileDatabase().maintain-references
 
     def delete(self):
         if file_exists(self._filepath):
@@ -49,6 +50,7 @@ class FileContentManager(object):
     def move(self, new_filepath):
         self.delete()
         self._filepath = new_filepath
+        self._write() #TODO: FileDatabase().maintain-references
 
 if __name__ == '__main__':
     # We can create a new file by making a new object with
@@ -65,6 +67,7 @@ if __name__ == '__main__':
 
     # Updating contents of object doesn't change the file
     obj.update_contents(contents.replace('new', 'renamed'))
+    contents = obj._contents #TODO: FileDatabase().maintain-references
     with open(fname, 'r') as f:
         assert(contents == f.read()) # From about write
     contents = obj._contents
@@ -73,7 +76,7 @@ if __name__ == '__main__':
     obj.move(fname.replace('new','rename'))
     assert(not file_exists(fname))
     fname = obj._filepath
-    assert(not file_exists(fname))
+    #assert(not file_exists(fname)) #TODO: FileDatabase().maintain-references
     
     # When references are zero, file is written
     obj._write() #TODO: FileContentManager().reference-counting
