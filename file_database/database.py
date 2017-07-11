@@ -17,14 +17,14 @@ class FileDatabase(object):
     '''
     def __init__(self, db_root, obj_class=FileContentManager, ext='txt'):
         # Database root directory and file extension
-        self._db_root = db_root
+        self._root = db_root
         self._ext = ext
         
         # Class to use to manage database entries (e.g. files)
         self._obj_class = obj_class 
 
     def _fullpath_from(self, basename):
-        return self._db_root + '/' + basename + '.' + self._ext
+        return self._root + '/' + basename + '.' + self._ext
 
     def _load_obj(self, fullpath):
         return self._obj_class(fullpath)
