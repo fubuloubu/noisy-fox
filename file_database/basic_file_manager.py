@@ -11,41 +11,44 @@ class FileContentManager(object):
     until necessary (no longer desire to hold object in memory)
     '''
     def __init__(self, filepath, new_contents=None):
-        self.filepath = filepath
+        self._filepath = filepath
         # Allow initializing new file from provided contents
         if new_contents:
-            self.contents = new_contents
+            self._contents = new_contents
         else:
-            self.contents = self._read()
+            self._contents = self._read()
     
     # Override this to update write() method
     def __str__(self):
-        return self.contents
+        return self._contents
 
     def __repr__(self):
-        return  "{0}('{1}')".format(self.__class__.__name__, self.filepath)
+        return  "{0}('{1}')".format(self.__class__.__name__, self._filepath)
     
     def _read(self):
-        with open(self.filepath, 'r') as f:
+        with open(self._filepath, 'r') as f:
             return f.read()
 
     def _write(self):
-        if self.filepath:
-            with open(self.filepath, 'w') as f:
+        if self._filepath:
+            with open(self._filepath, 'w') as f:
                 # Use repr() to show how to
                 # write it out of the file
                 f.write(str(self))
+    
+    def update_contents(self, new_contents):
+        self._contents = new_contents
 
     def delete(self):
-        if file_exists(self.filepath):
+        if file_exists(self._filepath):
             # In case file has loaded but is not
             # saved yet (e.g. file contents in memory)
-            file_remove(self.filepath)
-        self.filepath = None
+            file_remove(self._filepath)
+        self._filepath = None
 
     def move(self, new_filepath):
         self.delete()
-        self.filepath = new_filepath
+        self._filepath = new_filepath
 
 if __name__ == '__main__':
     # We can create a new file by making a new object with
@@ -61,15 +64,15 @@ if __name__ == '__main__':
     obj._write()
 
     # Updating contents of object doesn't change the file
-    obj.contents = contents.replace('new', 'renamed')
+    obj.update_contents(contents.replace('new', 'renamed'))
     with open(fname, 'r') as f:
         assert(contents == f.read()) # From about write
-    contents = obj.contents
+    contents = obj._contents
 
     # Moving a file object removes the existing file
     obj.move(fname.replace('new','rename'))
     assert(not file_exists(fname))
-    fname = obj.filepath
+    fname = obj._filepath
     assert(not file_exists(fname))
     
     # When references are zero, file is written
@@ -81,7 +84,7 @@ if __name__ == '__main__':
     # We can also initialize an object from an existing file
     contents = 'This is is an existing FileContentManager()!'
     obj = FileContentManager(fname)
-    obj.contents = contents
+    obj.update_contents(contents)
     obj._write()
     with open(fname, 'r') as f:
         assert(contents == f.read())
