@@ -1,6 +1,6 @@
 from .basic_file_manager import FileContentManager
 
-from glob import iglob as find_file
+from glob import iglob as glob_files
 class FileDatabase(object):
     '''
     Initialize resources for processing a file database in a given root 
@@ -26,10 +26,16 @@ class FileDatabase(object):
     def _fullpath_from(self, basename):
         return self._root + '/' + basename + '.' + self._ext
 
+    def _basename_from(self, fullpath):
+        return fullpath.replace(self._root + '/', '').replace('.' + self._ext, '')
+
     def _load_obj(self, fullpath):
-        return self._obj_class(fullpath)
+        obj = self._obj_class(fullpath)
+        obj.basename = self._basename_from(fullpath)
+        #TODO: FileDatabase().directory-heirarchy-doesnt-exist -- Add directories recursively if they don't exist
+        return obj 
     
-    def add_obj(self, basename, obj_content):
+    def add_obj(self, basename, obj_content=None):
         obj = self._obj_class(self._fullpath_from(basename), \
                 new_contents=obj_content)
         obj._write() #TODO: FileContentManager().reference-counting
@@ -38,7 +44,7 @@ class FileDatabase(object):
     def get_objs(self, fileglob='**/*'):
         # Default **/* is any file in folder, recursively
         return map(self._load_obj, \
-                find_file(self._fullpath_from(fileglob), recursive=True))
+                glob_files(self._fullpath_from(fileglob), recursive=True))
 
     # Given a query, perform tho query on a given list 
     # of objects and return list of objects that pass the query.
@@ -98,6 +104,7 @@ if __name__ == '__main__':
     db = FileDatabase(test_dir)
     assert(len([o for o in db.get_objs()]) == N)
     assert(len([o for o in db.get_objs('renamed-0*')]) == N/10)
+    assert(all([o.basename == db._basename_from(o._filepath) for o in db.get_objs()]))
 
     query = lambda o: text_to_add in o._contents
     assert(len([o for o in db.query(query)]) == N)
