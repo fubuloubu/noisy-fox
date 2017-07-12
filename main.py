@@ -1,3 +1,34 @@
+"""
+Local app (using Electron or similar)
+
+Local file-based database of tests
+XML-based (extensible with other ideas)
+compression?
+
+metadata:
+description, title, test id (MD5 hash), requirements link?
+
+contains tests inputs, outputs, initial conditions, post conditions
+graphically modify plots of inputs and expected outputs
+control which items appear on which plots, zooming, how many plots to look at
+expected outputs have built in +/-dy, +dt error bars (semi-transparent same color)
+    this dictates pass critera
+
+ability to load prior run data to compare (does not save to test)
+    need to "compress" data to simple paths
+    highlight exceedences
+    ability to "trace" this data e.g. modify expected output to match
+
+view only web client
+graphical diff tool
+graphical commit?
+
+suggestions:
+http://paperjs.org/examples/path-simplification
+
+DO-178B/C tool verification
+"""
+
 from flask import Flask, render_template, redirect, url_for, request
 app = Flask(__name__)
 
