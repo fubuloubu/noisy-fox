@@ -27,3 +27,6 @@ def add_and_round(prev_time, update_rate):
     if isinstance(next_time, float):
         next_time = round(next_time, SIGFIGS)
     return next_time
+
+def calc_slope(prev_time, prev_data, next_time, next_data):
+    return (next_data - prev_data) / float((next_time - prev_time))
