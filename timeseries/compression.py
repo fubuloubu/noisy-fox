@@ -1,33 +1,51 @@
 from .shared import *
 def compress(timeseries):
-
+    # Trivial checks
     check_list(timeseries)
-    
     if not len(timeseries) > 1:
         return timeseries, 0
+
+    # Start with the first point in the series
+    last_pt = timeseries[0]
+    check_tuple(last_pt)
+    compressed_timeseries = [last_pt]
     
-    prev_pt = timeseries[0]
-    check_tuple(prev_pt)
-    compressed_timeseries = [prev_pt]
-    
+    # For each point in the series
     update_rate = None
-    for next_pt in timeseries[1:]:
-        check_tuple(next_pt)
-        prev_time, prev_data = prev_pt
-        next_time, next_data = next_pt
-
+    last_added_pt = last_pt
+    last_slope = None
+    for this_pt in timeseries[1:]:
+        check_tuple(this_pt)
+        last_time, last_data = last_pt
+        this_time, this_data = this_pt
+        
         if not update_rate:
-            update_rate = get_update_rate(next_time, prev_time)
-        check_update_rate(next_time, prev_time, update_rate)
+            update_rate = get_update_rate(this_time, last_time)
+        check_update_rate(this_time, last_time, update_rate)
         
-        if next_data != prev_data:
-            compressed_timeseries.append(next_pt)
+        this_slope = calc_slope(last_time, last_data, this_time, this_data)
         
-        prev_pt = next_pt
+        # If we have a data change
+        if this_data != last_data:
+            # If the last point was not added, add it
+            if last_pt != last_added_pt:
+                compressed_timeseries.append(last_pt)
+                last_added_pt = last_pt
+                last_slope = None # reset this so we add the step next
+            # Add this point if the slope is different
+            if last_slope is None and this_slope != last_slope:
+                compressed_timeseries.append(this_pt)
+                last_added_pt = this_pt
 
-    # Add the last point if missing, so we understand where to stop
-    if prev_pt != compressed_timeseries[-1]:
+        # Update past values
+        last_slope = this_slope
+        last_pt = this_pt
+
+    # Add the last point if missing, so we have the point to stop decompression
+    if last_pt != compressed_timeseries[-1]:
         compressed_timeseries.append(timeseries[-1])
+
+    # Return the compressed dataset, as well as the update rate for decompression
     return compressed_timeseries, update_rate
 
 def uncompress(timeseries, update_rate):
@@ -37,41 +55,86 @@ def uncompress(timeseries, update_rate):
     if not len(timeseries) > 1:
         return timeseries
     
-    prev_pt = timeseries[0]
-    check_tuple(prev_pt)
-    uncompressed_timeseries = [prev_pt]
+    last_pt = timeseries[0]
+    check_tuple(last_pt)
+    uncompressed_timeseries = [last_pt]
     
-    for next_pt in timeseries[1:]:
-        check_tuple(next_pt)
+    for this_pt in timeseries[1:]:
+        check_tuple(this_pt)
         
-        prev_time, prev_data = prev_pt
-        next_time, next_data = next_pt
+        last_time, last_data = last_pt
+        this_time, this_data = this_pt
+
+        slope = calc_slope(last_time, last_data, this_time, this_data)
         
         # For all timeseries elements between the current entry time
-        # and the next, fille in with datapoints matching the current
+        # and the next, filled in with datapoints matching the current
         # data with successive time increments using update_rate
-        prev_time = add_and_round(prev_time, update_rate)
-        while next_time > prev_time:
-            prev_pt = (prev_time, prev_data)
-            uncompressed_timeseries.append(prev_pt)
-            prev_time = add_and_round(prev_time, update_rate)
-        # After we've filled up the array with previous data samples,
+        last_time = add_and_round(last_time, update_rate)
+        while this_time > last_time:
+            last_data = last_data + slope*update_rate
+            last_pt = (last_time, last_data)
+            uncompressed_timeseries.append(last_pt)
+            last_time = add_and_round(last_time, update_rate)
+        # After we've filled up the array with last data samples,
         # add the newest sample in there and do it again
-        uncompressed_timeseries.append(next_pt)
-        prev_pt = next_pt
+        uncompressed_timeseries.append(this_pt)
+        last_pt = this_pt
 
     return uncompressed_timeseries
 
 if __name__ == '__main__':
-    def assert_equal(q1, q2):
+    def assert_equal(l1, l2):
         try:
-            assert(q1 == q2)
+            assert(l1 == l2)
         except AssertionError as error:
-            raise AssertionError('Result:\n{}\n  is not equal to:\n{}'.format(q1, q2))
+            # Collect all the diffs between the list, both directions
+            # (in case one point exists in one list, but not the other)
+            diff_times = [t for t, _ in list(set(l1) - set(l2))]
+            diff_times.extend([t for t, _ in list(set(l2) - set(l1)) if t not in diff_times])
+            diff_times.sort()
+            # Use this list to get the diffs
+            diffs = []
+            for time in diff_times:
+                # Try to find time in l1
+                found_i = None
+                for i, pt1 in enumerate(l1):
+                    if pt1[0] == time:
+                        found_i = i
+                        break
+                # Try to find time in l2
+                found_j = None
+                for j, pt2 in enumerate(l2):
+                    if pt2[0] == time:
+                        found_j = j
+                        break
+                diff_line = []
+                if found_i and found_j:
+                    # Both have it
+                    # If not at extreme of list and times/values match for prior, add this line
+                    if found_i > 0 and found_j > 0 and \
+                            l1[found_i-1][0] == l2[found_j-1][0] and \
+                            l1[found_i-1][1] == l2[found_j-1][1]:
+                        diff_line.append('  bf: ({:4.3f}, {:4.3f})'.format(*l1[found_i-1]))
+                    diff_line.append('< l1: ({:4.3f}, {:4.3f})'.format(*l1[found_i]))
+                    diff_line.append('> l2: ({:4.3f}, {:4.3f})'.format(*l2[found_j]))
+                    # If not at extreme of list and times/values match for later, add this line
+                    if found_i < len(l1) and found_j < len(l2) and \
+                            l1[found_i+1][0] == l2[found_j+1][0] and \
+                            l1[found_i+1][1] == l2[found_j+1][1]:
+                        diff_line.append('  af: ({:4.3f}, {:4.3f})'.format(*l1[found_i+1]))
+                elif found_i:
+                    diff_line.append('+ l1: ({:4.3f},  {:4.3f})'.format(*l1[found_i]))
+                elif found_j:
+                    diff_line.append('+ l2: ({:4.3f},  {:4.3f})'.format(*l2[found_j]))
+                diffs.append('\n'.join(diff_line))
+            print('Assertion Failure:\n{}\n'.format('\n'.join(diffs)))
+            raise error
 
     def assert_positive_compression(l1, l2):
         try:
             assert(len(l1) <= len(l2))
+            return 100*len(l1)/float(len(l2))
         except AssertionError as error:
             raise AssertionError('List:\n{0}\n  length ({1}) is not less than length ({3}) of:\n{2}'.\
                     format(l1, len(l1), l2, len(l2)))
@@ -79,36 +142,44 @@ if __name__ == '__main__':
     # Trvial cases
     timeseries = []
     assert_equal(uncompress(*compress(timeseries)), timeseries)
-    timeseries = [(0, 0)]
+    timeseries = [(0.0, 0.0)]
     assert_equal(uncompress(*compress(timeseries)), timeseries)
-    timeseries = [(0, 0), (1, 0)]
-    assert_equal(compress(timeseries), ([(0, 0), (1, 0)], 1))
+    timeseries = [(0.0, 0.0), (1.0, 0.0)]
+    compressed_timeseries = timeseries
+    assert(compress(timeseries)[1] == 1.0)
+    assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
     
-    # Flat lines
-    timeseries = [(0, 1), (1, 1), (2, 1), (3, 1)]
-    compressed_timeseries = [(0, 1), (3, 1)]
-    assert_equal(compress(timeseries), (compressed_timeseries, 1))
+    # Flat lines work appropiately
+    timeseries = [(0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 1.0)]
+    compressed_timeseries = [(0.0, 1.0), (3.0, 1.0)]
+    assert(compress(timeseries)[1] == 1.0)
+    assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
     
     # Steps work appropiately
-    timeseries = [(0, 0), (1, 0), (2, 2), (3, 2)]
-    compressed_timeseries = [(0, 0), (2, 2), (3, 2)]
-    assert_equal(compress(timeseries), (compressed_timeseries, 1))
+    timeseries = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 2.0), (4.0, 2.0)]
+    compressed_timeseries = [(0.0, 0.0), (2.0, 0.0), (3.0, 2.0), (4.0, 2.0)]
+    assert(compress(timeseries)[1] == 1.0)
+    assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
     # Ramps work appropiately
-    timeseries = [(0, 0), (1, 1), (2, 2), (3, 3)]
-    compressed_timeseries = timeseries
-    assert_equal(compress(timeseries), (compressed_timeseries, 1))
+    timeseries = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]
+    compressed_timeseries = [(0.0, 0.0), (3.0, 3.0)]
+    assert(compress(timeseries)[1] == 1.0)
+    assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
-    # More advanced cases
+    # Randomized trials to gauge efficiency
     from random import randrange as rand_range
-    N = 100
-    for _ in range(10): # run this many trials
-        timeseries = [(t/N, rand_range(0,2)) for t in range(N)]
+    N = 1000
+    print("Running randomized trials")
+    avg_comp = None
+    for i in range(10): # run this many trials
+        timeseries = [(t/N, float(rand_range(0.0,2.0))) for t in range(N)]
         assert_equal(uncompress(*compress(timeseries)), timeseries)
-        assert_positive_compression(compress(timeseries)[0], timeseries)
-
+        comp = assert_positive_compression(compress(timeseries)[0], timeseries)
+        avg_comp = comp if not avg_comp else (comp + i*avg_comp)/(i+1)
+    print("Average compression: {:3.2f}%".format(avg_comp))
     print('compress()/uncompress() Testing Passed!')
