@@ -133,7 +133,7 @@ if __name__ == '__main__':
     def assert_positive_compression(l1, l2):
         try:
             assert(len(l1) <= len(l2))
-            return 100*len(l1)/float(len(l2))
+            return 100*(1 - len(l1)/float(len(l2)))
         except AssertionError as error:
             raise AssertionError('List:\n{0}\n  length ({1}) is not less than length ({3}) of:\n{2}'.\
                     format(l1, len(l1), l2, len(l2)))
@@ -180,9 +180,9 @@ if __name__ == '__main__':
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
     # Randomized trials to gauge efficiency
-    from random import randrange as rand_range
+    from random import randrange as rand_range, uniform as rand_float
     N = 1000
-    print("Running randomized trials")
+    print("Running randomized trials (boolean)")
     avg_comp = None
     for i in range(10): # run this many trials
         timeseries = [(t/N, float(rand_range(0.0,2.0))) for t in range(N)]
@@ -190,4 +190,23 @@ if __name__ == '__main__':
         comp = assert_positive_compression(compress(timeseries)[0], timeseries)
         avg_comp = comp if not avg_comp else (comp + i*avg_comp)/(i+1)
     print('  Average compression: {:3.2f}%'.format(avg_comp))
+    
+    print("Running randomized trials (integer [0, 9])")
+    avg_comp = None
+    for i in range(10): # run this many trials
+        timeseries = [(t/N, float(rand_range(0.0,10.0))) for t in range(N)]
+        assert_equal(uncompress(*compress(timeseries)), timeseries)
+        comp = assert_positive_compression(compress(timeseries)[0], timeseries)
+        avg_comp = comp if not avg_comp else (comp + i*avg_comp)/(i+1)
+    print('  Average compression: {:3.2f}%'.format(avg_comp))
+    
+    print("Running randomized trials (normal dist [-10.0, 10.0])")
+    avg_comp = None
+    for i in range(10): # run this many trials
+        timeseries = [(t/N, rand_float(-10.0,10.0)) for t in range(N)]
+        assert_equal(uncompress(*compress(timeseries)), timeseries)
+        comp = assert_positive_compression(compress(timeseries)[0], timeseries)
+        avg_comp = comp if not avg_comp else (comp + i*avg_comp)/(i+1)
+    print('  Average compression: {:3.2f}%'.format(avg_comp))
+    
     print('compress()/uncompress() Testing Passed!')
