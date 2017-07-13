@@ -21,7 +21,6 @@ def compress(timeseries):
         check_update_rate(next_time, prev_time, update_rate)
         
         if next_data != prev_data:
-            compressed_timeseries.append((next_time, prev_data)) # step
             compressed_timeseries.append(next_pt)
         
         prev_pt = next_pt
@@ -48,9 +47,6 @@ def uncompress(timeseries, update_rate):
         prev_time, prev_data = prev_pt
         next_time, next_data = next_pt
         
-        if prev_time == next_time:
-            uncompressed_timeseries.pop() # Handle steps
-
         # For all timeseries elements between the current entry time
         # and the next, fille in with datapoints matching the current
         # data with successive time increments using update_rate
@@ -73,6 +69,13 @@ if __name__ == '__main__':
         except AssertionError as error:
             raise AssertionError('Result:\n{}\n  is not equal to:\n{}'.format(q1, q2))
 
+    def assert_positive_compression(l1, l2):
+        try:
+            assert(len(l1) <= len(l2))
+        except AssertionError as error:
+            raise AssertionError('List:\n{0}\n  length ({1}) is not less than length ({3}) of:\n{2}'.\
+                    format(l1, len(l1), l2, len(l2)))
+
     # Trvial cases
     timeseries = []
     assert_equal(uncompress(*compress(timeseries)), timeseries)
@@ -84,12 +87,14 @@ if __name__ == '__main__':
     
     # Flat lines
     timeseries = [(0, 1), (1, 1), (2, 1), (3, 1)]
-    assert_equal(compress(timeseries), ([(0, 1), (3, 1)], 1))
+    compressed_timeseries = [(0, 1), (3, 1)]
+    assert_equal(compress(timeseries), (compressed_timeseries, 1))
     assert_equal(uncompress(*compress(timeseries)), timeseries)
     
     # Steps work appropiately
     timeseries = [(0, 0), (1, 0), (2, 2), (3, 2)]
-    assert_equal(compress(timeseries), ([(0, 0), (2, 0), (2, 2), (3, 2)], 1))
+    compressed_timeseries = [(0, 0), (2, 2), (3, 2)]
+    assert_equal(compress(timeseries), (compressed_timeseries, 1))
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
     # More advanced cases
@@ -98,5 +103,6 @@ if __name__ == '__main__':
     for _ in range(10): # run this many trials
         timeseries = [(t/N, rand_range(0,2)) for t in range(N)]
         assert_equal(uncompress(*compress(timeseries)), timeseries)
+        assert_positive_compression(compress(timeseries)[0], timeseries)
 
     print('compress()/uncompress() Testing Passed!')
