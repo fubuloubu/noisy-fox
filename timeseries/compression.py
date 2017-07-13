@@ -28,12 +28,11 @@ def compress(timeseries):
         # If we have a data change
         if this_data != last_data:
             # If the last point was not added, add it
-            if last_pt != last_added_pt:
+            if last_pt != last_added_pt and this_slope != last_slope:
                 compressed_timeseries.append(last_pt)
                 last_added_pt = last_pt
-                last_slope = None # reset this so we add the step next
-            # Add this point if the slope is different
-            if last_slope is None and this_slope != last_slope:
+            # Add this point if the slope is different (or the first point)
+            if last_slope is None or this_slope != last_slope:
                 compressed_timeseries.append(this_pt)
                 last_added_pt = this_pt
 
@@ -151,6 +150,7 @@ if __name__ == '__main__':
     assert_equal(uncompress(*compress(timeseries)), timeseries)
     
     # Flat lines work appropiately
+    print("Running flat line test")
     timeseries = [(0.0, 1.0), (1.0, 1.0), (2.0, 1.0), (3.0, 1.0)]
     compressed_timeseries = [(0.0, 1.0), (3.0, 1.0)]
     assert(compress(timeseries)[1] == 1.0)
@@ -158,6 +158,7 @@ if __name__ == '__main__':
     assert_equal(uncompress(*compress(timeseries)), timeseries)
     
     # Steps work appropiately
+    print("Running step detect test")
     timeseries = [(0.0, 0.0), (1.0, 0.0), (2.0, 0.0), (3.0, 2.0), (4.0, 2.0)]
     compressed_timeseries = [(0.0, 0.0), (2.0, 0.0), (3.0, 2.0), (4.0, 2.0)]
     assert(compress(timeseries)[1] == 1.0)
@@ -165,8 +166,15 @@ if __name__ == '__main__':
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
     # Ramps work appropiately
+    print("Running ramp detect test (without wait)")
     timeseries = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]
-    compressed_timeseries = [(0.0, 0.0), (3.0, 3.0)]
+    compressed_timeseries = [(0.0, 0.0), (1.0, 1.0), (3.0, 3.0)]
+    assert(compress(timeseries)[1] == 1.0)
+    assert_equal(compress(timeseries)[0], compressed_timeseries)
+    assert_equal(uncompress(*compress(timeseries)), timeseries)
+    print("Running ramp detect test (with wait)")
+    timeseries = [(0.0, 0.0), (1.0, 0.0), (2.0, 1.0), (3.0, 2.0), (4.0, 3.0)]
+    compressed_timeseries = [(0.0, 0.0), (1.0, 0.0), (2.0, 1.0), (4.0, 3.0)]
     assert(compress(timeseries)[1] == 1.0)
     assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
@@ -181,5 +189,5 @@ if __name__ == '__main__':
         assert_equal(uncompress(*compress(timeseries)), timeseries)
         comp = assert_positive_compression(compress(timeseries)[0], timeseries)
         avg_comp = comp if not avg_comp else (comp + i*avg_comp)/(i+1)
-    print("Average compression: {:3.2f}%".format(avg_comp))
+    print('  Average compression: {:3.2f}%'.format(avg_comp))
     print('compress()/uncompress() Testing Passed!')
