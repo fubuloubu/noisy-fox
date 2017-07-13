@@ -97,6 +97,12 @@ if __name__ == '__main__':
     assert_equal(compress(timeseries), (compressed_timeseries, 1))
     assert_equal(uncompress(*compress(timeseries)), timeseries)
 
+    # Ramps work appropiately
+    timeseries = [(0, 0), (1, 1), (2, 2), (3, 3)]
+    compressed_timeseries = timeseries
+    assert_equal(compress(timeseries), (compressed_timeseries, 1))
+    assert_equal(uncompress(*compress(timeseries)), timeseries)
+
     # More advanced cases
     from random import randrange as rand_range
     N = 100
