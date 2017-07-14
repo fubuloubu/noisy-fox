@@ -13,10 +13,10 @@ class FileContentManager(object):
     def __init__(self, filepath, new_contents=None):
         self._filepath = filepath
         # Allow initializing new file from provided contents
-        if new_contents:
-            self._contents = new_contents
-        else:
+        if file_exists(filepath):
             self._contents = self._read()
+        elif new_contents:
+            self._contents = new_contents
     
     # Override this to update write() method
     def __str__(self):
