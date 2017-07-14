@@ -25,24 +25,26 @@ def compress(timeseries):
         
         this_slope = calc_slope(last_time, last_data, this_time, this_data)
         
-        # If we have a data change
-        if this_data != last_data:
-            # If the last point was not added, add it
-            if last_pt != last_added_pt and this_slope != last_slope:
-                compressed_timeseries.append(last_pt)
-                last_added_pt = last_pt
-            # Add this point if the slope is different (or the first point)
-            if last_slope is None or this_slope != last_slope:
-                compressed_timeseries.append(this_pt)
-                last_added_pt = this_pt
+        # If the last point was not added and we're not seeing a 
+        # trend continuation, add that point to the series
+        if last_pt != last_added_pt and this_slope != last_slope:
+            compressed_timeseries.append(last_pt)
+            last_added_pt = last_pt
+
+        # Add this point if the slope is different
+        # (or the first iteration has a data change)
+        if (this_data != last_data and last_slope is None) or \
+                (this_slope != last_slope and last_slope is not None):
+            compressed_timeseries.append(this_pt)
+            last_added_pt = this_pt
 
         # Update past values
         last_slope = this_slope
         last_pt = this_pt
 
     # Add the last point if missing, so we have the point to stop decompression
-    if last_pt != compressed_timeseries[-1]:
-        compressed_timeseries.append(timeseries[-1])
+    if compressed_timeseries[-1] != last_pt:
+        compressed_timeseries.append(last_pt)
 
     # Return the compressed dataset, as well as the update rate for decompression
     return compressed_timeseries, update_rate
@@ -84,8 +86,9 @@ def uncompress(timeseries, update_rate):
 
 if __name__ == '__main__':
     def assert_equal(l1, l2):
+        round_list = lambda l: [(round(i[0], SIGFIGS), round(i[1], SIGFIGS)) for i in l]
         try:
-            assert(l1 == l2)
+            assert(round_list(l1) == round_list(l2))
         except AssertionError as error:
             # Collect all the diffs between the list, both directions
             # (in case one point exists in one list, but not the other)
@@ -167,8 +170,8 @@ if __name__ == '__main__':
 
     # Ramps work appropiately
     print("Running ramp detect test (without wait)")
-    timeseries = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0), (3.0, 3.0)]
-    compressed_timeseries = [(0.0, 0.0), (1.0, 1.0), (3.0, 3.0)]
+    timeseries = [(0.0, 0.0), (1.0, 1.0), (2.0, 2.0), (3.0, 3.0), (4.0, 3.0)]
+    compressed_timeseries = [(0.0, 0.0), (1.0, 1.0), (3.0, 3.0), (4.0, 3.0)]
     assert(compress(timeseries)[1] == 1.0)
     assert_equal(compress(timeseries)[0], compressed_timeseries)
     assert_equal(uncompress(*compress(timeseries)), timeseries)
