@@ -34,7 +34,6 @@ class FileDatabase(object):
     def _load_obj(self, fullpath):
         obj = self._obj_class(fullpath)
         obj.basename = self._basename_from(fullpath)
-        #TODO: FileDatabase().directory-heirarchy-doesnt-exist -- Add directories recursively if they don't exist
         return obj 
     
     def add_obj(self, basename, obj_content=None):
