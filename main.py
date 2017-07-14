@@ -37,7 +37,7 @@ from file_database.database import FileDatabase
 from testcase import TestCaseContentManager as TestCase
 from os import getcwd as pwd
 # TODO: Allow user to choose database directories
-db = FileDatabase(pwd()+'/file_testdb', obj_class=TestCase)
+db = FileDatabase(pwd()+'/file_testdb', obj_class=TestCase, ext='xml')
 
 @app.route("/")
 @app.route("/search")
