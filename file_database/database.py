@@ -1,6 +1,8 @@
 from .basic_file_manager import FileContentManager
 
 from glob import iglob as glob_files
+from os import mkdir as create_directory
+from os.path import isdir as directory_exists
 class FileDatabase(object):
     '''
     Initialize resources for processing a file database in a given root 
@@ -36,6 +38,14 @@ class FileDatabase(object):
         return obj 
     
     def add_obj(self, basename, obj_content=None):
+        # Starting with the root directory, ensure the path to the
+        # new file exists, creating directories as we go
+        path_to_added_file = self._root
+        for folder in basename.split('/')[:-1]:
+            path_to_added_file += '/' + folder
+            if not directory_exists(path_to_added_file):
+                create_directory(path_to_added_file)
+        # Instantiate object class
         obj = self._obj_class(self._fullpath_from(basename), \
                 new_contents=obj_content)
         obj._write() #TODO: FileContentManager().reference-counting
