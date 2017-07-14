@@ -59,12 +59,12 @@ def add():
     </form>
     '''
 
-@app.route("/view/<basename>")
+@app.route("/view/<path:basename>")
 def view(basename):
     return str(db._load_obj(db._fullpath_from(basename))) + \
             "\n" + '<a href="'+url_for("search")+'">Back to Search</a>'
 
-@app.route("/edit/<basename>")
+@app.route("/edit/<path:basename>")
 def edit(basename):
     return str(db._load_obj(db._fullpath_from(basename))) + \
             "\n" + '<a href="'+url_for("search")+'">Back to Search</a>'
