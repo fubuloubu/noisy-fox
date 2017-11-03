@@ -37,61 +37,32 @@ class TestCaseContentManager(XMLContentManager):
         self.set('root/testcase/description', new_description)
 
     # Testcase sectional data GET/SET
-    def create_signal_obj(self, section, name, \
-            value=0.00000, timeseries=None, \
-            latency=0.00000, sample_time=0.00100, \
-            lsb=1.000, variance=0.000, \
-            time_fmt = '.05f', data_fmt='.03f'):
-        
-        # Name is required, no matter what
-        sig = {}
-        sig['@name'] = name
-        
-        # Depending on the section we're talking about,
-        # different attributes apply
-        # Note: Attributes might be per-customer
-        if section in ['action', 'result', 'verify']:
-            sig['@sample_time'] = format(sample_time, time_fmt)
-            sig['@lsb'] = format(lsb, data_fmt)
-        if section in ['verify']:
-            sig['@latency'] = format(latency, time_fmt)
-            sig['@variance'] = format(variance, data_fmt)
-        
-        # The value of the signal is either a timeseries
-        if section in ['action', 'result', 'verify']:
-            # Note: Timeseries object is default object. 
-            # Perhaps make this extensible for other types? e.g. per-customer
-            fmt = lambda time, data: { 
-                    '@time' : format(time, time_fmt), 
-                    '@data' : format(data, data_fmt)
-            }
-            sig['timeseries'] = [fmt(t,d) for t,d in timeseries]
-        # or a static value
-        elif section in ['setup']:
-            sig['@value'] = format(value, data_fmt)
-        
-        #else: This should be an appliation error
-
-        return sig
+    def verify_section(self, section):
+        assert(section) # in list of qualified sections
 
     def get_section_objs(self, section):
+        self.verify_section(section)
         return self.get('root/testcase/' + section)
 
     def find_section_obj_idx(self, section, name):
+        self.verify_section(section)
         for i, obj in enumerate(self.get_section_objs(section)):
             if obj['@name'] == name:
                 return i
 
-    def add_section_obj(self, section, name, data):
-        sig = self.create_signal_obj(section, name, **data)
+    def add_section_obj(self, section, **data):
+        self.verify_section(section)
+        sig = self.create_signal_obj(section, **data)
         self.set('root/testcase/' + section + '/-1', sig)
 
     def del_section_obj(self, section, name):
+        self.verify_section(section)
         idx = str(self.find_section_obj_idx(section, name))
         self.get('root/testcase/' + section + '/' + idx + '/#pop')
 
-    def update_section_obj(self, section, name, data):
-        sig = self.create_signal_obj(section, name, **data)
+    def update_section_obj(self, section, name, **data):
+        self.verify_section(section)
+        sig = self.create_signal_obj(section, **data)
         idx = str(self.find_section_obj_idx(section, name))
         self.set('root/testcase/' + section + '/' + idx, sig)
 
@@ -109,17 +80,17 @@ if __name__ == '__main__':
     
     signame1 = 'sig-name-1'
     signame2 = 'sig-name-2'
-    data1 = {'value' : 1.000, 'sample_time' : 0.100, 'lsb' : 0.500, 
-            'latency' : 0.300, 'variance' : 0.250,
+    data1 = {'name': signame1, 'value' : 1.000, 'sample_time' : 0.100, 
+            'lsb' : 0.500, 'latency' : 0.300, 'variance' : 0.250,
             'timeseries' : [(0, 0), (1, 1), (2, 2), (3, 3)]
     }
-    data2 = {'value' : 2.000, 'sample_time' : 0.200, 'lsb' : 1.000, 
-            'latency' : 0.400, 'variance' : 0.500,
+    data2 = {'name' : signame2, 'value' : 2.000, 'sample_time' : 0.200, 
+            'lsb' : 1.000, 'latency' : 0.400, 'variance' : 0.500,
             'timeseries' : [(0, 1), (1, 2), (2, 3), (3, 4)]
     }
     
     for section in ['setup', 'action', 'result', 'verify']:
-        test.add_section_obj(section, signame1, data1)
+        test.add_section_obj(section, data1)
         idx = test.find_section_obj_idx(section, signame1)
         assert(idx == 0)
         assert(test.get_section_objs(section)[idx]['@name'] == signame1)
@@ -140,7 +111,8 @@ if __name__ == '__main__':
                 for i, pt in enumerate(data2[key]):
                     assert(float(obj[key][i]['@time']) == pt[0])
                     assert(float(obj[key][i]['@data']) == pt[1])
-        test.add_section_obj(section, signame2, data1)
+        test.add_section_obj(section, data2)
+        test.update_section_obj(section, signame2, data1)
         idx = test.find_section_obj_idx(section, signame2)
         assert(idx == 1)
         assert(test.get_section_objs(section)[idx]['@name'] == signame2)

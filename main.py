@@ -42,29 +42,30 @@ db = FileDatabase(pwd()+'/file_testdb', obj_class=TestCase, ext='xml')
 @app.route("/")
 @app.route("/search")
 def search():
-    return "\n".join(['<a href="'+url_for("view", basename=o.basename)+\
-            '">'+o.get_title()+'</a>' for o in db.get_objs()]) + \
-            "\n" + '<a href="'+url_for("add")+'">Add Another</a>'
+    return render_template("search.html", obj_listing=db.get_objs()) 
     
 @app.route("/add", methods=["GET", "POST"])
 def add():
+    error = None
     if request.method == 'POST':
-        fname = request.form["basename"]
-        db.add_obj(fname)
-        return redirect(url_for("edit", basename=fname))
-    return '''
-    <form method="post">
-        <input name="basename">
-        <input type="submit" value="Add Test">
-    </form>
-    '''
+        error = db.add_obj(request.form["basename"])
+        if not error:
+            return redirect(url_for("edit", basename=fname))
+    return render_template("add.html", error=error)
 
 @app.route("/view/<path:basename>")
 def view(basename):
-    return str(db._load_obj(db._fullpath_from(basename))) + \
-            "\n" + '<a href="'+url_for("search")+'">Back to Search</a>'
+    obj = [o for o in db.get_objs(basename)][0]
+    print(obj)
+    return render_template("view.html", obj=obj)
 
-@app.route("/edit/<path:basename>")
+@app.route("/edit/<path:basename>", methods=["GET", "POST"])
 def edit(basename):
-    return str(db._load_obj(db._fullpath_from(basename))) + \
-            "\n" + '<a href="'+url_for("search")+'">Back to Search</a>'
+    error = None
+    obj = [o for o in db.get_objs(basename)][0]
+    if request.method == 'POST':
+        if request.form["function"] == "Update Title":
+            error = db.apply(lambda o: o.set_title(request.form["Title"]), objs=[obj])
+        if not error:
+            return redirect(url_for("view", basename=basename))
+    return render_template("edit.html", error=error, obj=obj)

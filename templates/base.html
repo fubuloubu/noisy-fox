@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{% block title %}Testing Utility{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% block head %}
+    {% endblock %}
+  </head>
+  <body>
+    <div class="wrapper" id="header">
+      <div class="flex-fill"></div>
+      <a class="search-btn" href="{{ url_for('search') }}">Search</a>
+      <div class="flex-fill"></div>
+      <a class="add-btn"    href="{{ url_for('add') }}">Add Test</a>
+      <div class="flex-fill"></div>
+    </div>
+    <div class="flex-fill"></div>
+    <div class="wrapper" id="content">
+      {% block content %}
+      {% endblock %}
+    </div>
+  </body>
+</html>

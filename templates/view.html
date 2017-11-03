@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% if obj %}
+  
+  {% block title %}{{ obj.get_title() }}{% endblock %}
+
+  {% block content %}
+    <div>Test UID: {{ obj.get_uid() }}</div>
+
+    <div>Title: {{ obj.get_title() }}</div>
+    
+    <div>Description: {{ obj.get_description() }}</div>
+    
+    {% for section in ['setup', 'action', 'result', 'verify'] %}
+      <div>
+        <div>Section: {{ section|upper }}</div>
+        <div>
+        {% for signal in obj.get_section_objs(section) %}
+          <div>Signal Name: {{ signal['name'] }}</div>
+        {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+
+  {% endblock %}
+{% endif %}

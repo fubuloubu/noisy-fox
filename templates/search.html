@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if obj_listing %}
+    <ul id="test-list">
+      {% for o in obj_listing %}
+      <li class="test-listing">
+        <a href="{{ url_for('view', basename=o.basename) }}">{{ o.get_title() }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}
